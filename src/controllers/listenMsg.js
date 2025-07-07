@@ -22,16 +22,15 @@ const listenMsg = () => {
     // 监听连接成功事件
     ws.on('open', () => {
         console.log('连接到ws服务器')
-        
-    });
+    })
 
     // 监听服务端消息
     ws.on('message', (data) => {
         if (data instanceof ArrayBuffer) {
             const buffer = Buffer.from(data)
-            console.log('接收到消息:', buffer)
+            console.log('接收到消息:buffer:', buffer)
         }else{
-            console.log('新消息：')
+            // console.log('新消息：',data)
             parseMsg(data)
         }
     })

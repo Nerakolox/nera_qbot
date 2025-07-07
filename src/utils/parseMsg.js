@@ -1,23 +1,21 @@
+
+const { judegment } = require('./judgeModes')
+const { doSend } = require('../controllers/doSend')
+
 const parseMsg = ( msg ) => {
     const data = JSON.parse(msg)
+    // console.log(msg)
     // console.log(data)
     if(data.sender){
         //QQ消息处理逻辑
         analyzeMsg(data.message,data)
     }
 }
-
-const axios = require('axios')
-const { aiChat } = require('../controllers/aiChat')
-const { sendMsg } = require('./sendMsg')
 const analyzeMsg = ( msgList,msg ) => {
-    let isAnswer = false //是否需要回答
-    let isSending = false //是否处于发送状态
     let hasAt = false // 是否有AT
-    let hasReplyAndAt = false // 有AT且回复，启用上下文
+    let hasReplyAndAt = false // 有AT且回复
     let texts = ''
     let replyInfo = null
-    let msgRole = []
 
     msgList.forEach(_msg => {
         if (_msg.type==='at'&&_msg.data.qq==process.env.BOTQQ) {
@@ -30,47 +28,16 @@ const analyzeMsg = ( msgList,msg ) => {
             texts+=_msg.data.text
         }
     })
-
-    if (replyInfo && hasAt) {
-        hasReplyAndAt = true // 有AT且回复，启用上下文
+    if(hasAt){// 如果是艾特机器人，则启用逻辑
+        // console.log('hasAt',hasAt)
+        // console.log('parse处理的消息：',msgList,msg)
+        const msgTemp = judegment(msg)
+        doSend(msgTemp)
     }
-    console.log('hasAt',hasAt)
-    if (hasAt&&!hasReplyAndAt) {
-        console.log("检出所有 text 消息:", texts)
-        msgRole.push({ role: 'user', content: texts })
-        aiChat(msgRole)
-            .then(res=>{
-                sendMsg(res,msg)
-            })
+    if (replyInfo && hasAt) {
+        hasReplyAndAt = true
     }
     
-    if (hasReplyAndAt) {
-        const query = {
-            message_id:replyInfo
-        }
-        axios.post(process.env.HTTPURL+'/get_msg',query)
-            .then(res=>{
-                res.data.data.message.forEach(item=>{
-                    if(item.type==='text'){
-                        msgRole.unshift({ role: 'assistant', content: item.data.text })
-                        console.log(msgRole)
-                        aiChat(msgRole)
-                            .then(res=>{
-                                sendMsg(res,msg)
-                            })
-                    }
-                })
-            })
-            .catch(err=>{
-                console.log('err',err)
-            })
-    }else{
-        console.log(msgRole)
-    }
-    // aiChat(item.data.text)
-    //     .then(res=>{
-    //         sendMsg(res,msg)
-    //     })
 }
 
 module.exports = { parseMsg }
